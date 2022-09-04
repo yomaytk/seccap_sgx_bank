@@ -1,0 +1,45 @@
+enclave {
+    
+    include "user_types.h" /* buffer_t */
+    
+    from "Edger8rSyntax/Types.edl" import *;
+    from "Edger8rSyntax/Pointers.edl" import *;
+    from "Edger8rSyntax/Arrays.edl" import *;
+    from "Edger8rSyntax/Functions.edl" import *;
+
+    from "TrustedLibrary/Libc.edl" import *;
+    from "TrustedLibrary/Libcxx.edl" import ecall_exception, ecall_map;
+    from "TrustedLibrary/Thread.edl" import *;
+
+    trusted {
+        public enum ProcessResult ecallInitManager();
+        public enum ProcessResult ecallNewAccount(
+            [in, string] const char* name,
+            [in, string] const char* password
+        );
+        public uint64_t ecallMyDeposit(
+            uint64_t amount
+        );
+        public uint64_t ecallMyWithdraw(
+            uint64_t amount
+        );
+    };
+
+    untrusted {
+        void ocall_print_string(
+            [in, string] const char* str
+        );
+        void ocallAccountListStore(
+            [in, size=account_data_len] uint8_t* account_data, 
+            size_t account_data_len
+        );
+        void ocallGetSealedAccountListSize(
+            [out] uint64_t* sealed_account_list_size
+        );
+        void ocallGetSealedAccountList(
+            [out, size=sealed_account_list_size] uint8_t* sealed_account_list_data,
+            uint64_t sealed_account_list_size
+        );
+    };
+
+};
