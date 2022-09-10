@@ -1,7 +1,4 @@
 #include "Enclave.h"
-#include <openssl/err.h>
-#include <openssl/ssl.h>
-#include <openssl/x509.h>
 #include <stdarg.h>
 #include <stdio.h> /* vsnprintf */
 #include <cstdio>  /* vsnprintf */
