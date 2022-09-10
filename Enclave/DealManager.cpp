@@ -1,4 +1,5 @@
 #include "DealManager.h"
+#include <stdio.h>
 #include "Account.h"
 #include "Enclave.h"
 #include "sealing.h"
@@ -18,6 +19,7 @@ Manager::DealManager::~DealManager() {
 bool Manager::DealManager::AccountLogin() { return current_account != NULL; }
 
 ProcessResult Manager::DealManager::AccountListStoreStorage() {
+    // printf("account store start.");
     size_t all_account_data_size = 0;
     for (auto&& account : account_list) {
         all_account_data_size +=
@@ -63,19 +65,20 @@ ProcessResult Manager::DealManager::AccountListStoreStorage() {
 ProcessResult Manager::DealManager::AccountListSetting() {
     uint64_t sealed_account_list_size = 0;
     ocallGetSealedAccountListSize(&sealed_account_list_size);
-    printf("sealed_account_list_size: %ld\n", sealed_account_list_size);
+    // printf("sealed_account_list_size: %ld\n", sealed_account_list_size);
     if (sealed_account_list_size > 0) {
-        uint8_t* sealed_account_list_data;
+        // printf("[account list get start] ");
+        uint8_t* sealed_account_list_data = (uint8_t*)calloc(1, sealed_account_list_size);
         ocallGetSealedAccountList(sealed_account_list_data, sealed_account_list_size);
         auto unsealing_data_info   = this->sealing_unsealing->unsealing(sealed_account_list_data);
         uint8_t* account_list_data = unsealing_data_info.first;
         uint64_t account_list_size = (uint64_t)unsealing_data_info.second;
-
+        // printf("unsealing data: %s", (char*)account_list_data);
+        // printf("account_list_size: %ld", account_list_size);
         uint8_t* data_ptr = account_list_data;
         for (;;) {
             std::string name, password;
             uint64_t deposits;
-
             uint8_t* name_start_ptr = data_ptr;
             for (;; data_ptr++) {
                 if (*data_ptr == ',') {
@@ -88,7 +91,7 @@ ProcessResult Manager::DealManager::AccountListSetting() {
             uint8_t* password_start_ptr = data_ptr;
             for (;; data_ptr++) {
                 if (*data_ptr == ',') {
-                    name = std::string(password_start_ptr, data_ptr);
+                    password = std::string(password_start_ptr, data_ptr);
                     data_ptr++;
                     break;
                 }
@@ -97,12 +100,17 @@ ProcessResult Manager::DealManager::AccountListSetting() {
             uint8_t* deposits_start_ptr = data_ptr;
             deposits                    = *(uint64_t*)deposits_start_ptr;
             data_ptr += sizeof(uint64_t);
+
             assert(*data_ptr++ == '\n');
 
             this->account_list.push_back(new AS::Account(name, password, deposits));
+
+            if (data_ptr - account_list_data == account_list_size) {
+                break;
+            }
         }
     }
-    printf("[account list setting end] ");
+    // printf("[account list setting end] ");
 }
 
 ProcessResult Manager::DealManager::SetCurrentAccount(AS::Account* account) {

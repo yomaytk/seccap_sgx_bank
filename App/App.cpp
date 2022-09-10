@@ -164,15 +164,15 @@ void ocallGetSealedAccountListSize(uint64_t* sealed_account_list_size) {
 
         if (fgetpos(fp, &pos) == 0) {
             fclose(fp);
-            (uint64_t) pos.__pos;
+            *sealed_account_list_size = (uint64_t)pos.__pos;
         }
     }
-    printf("get account list size end.\n");
+    // printf("get account list size end.\n");
 }
 
 void ocallGetSealedAccountList(uint8_t* sealed_account_list_data,
                                uint64_t sealed_account_list_size) {
-    printf("get account list start.\n");
+    // printf("get account list start.\n");
     if (sealed_account_list_size > 0) {
         std::ifstream ifs((PROJECT_PATH + "account").c_str(), std::ios::binary | std::ios::in);
         if (ifs.is_open()) {
@@ -181,7 +181,7 @@ void ocallGetSealedAccountList(uint8_t* sealed_account_list_data,
                 printf("read account file failed.\n");
             }
             ifs.close();
-            printf("get account list end.\n");
+            // printf("get account list end.\n");
         } else {
             printf("open account file failed.\n");
             exit(EXIT_FAILURE);
@@ -258,6 +258,7 @@ int SGX_CDECL main(int argc, char* argv[]) {
                 int data_size[3];
                 int data_iter  = 0;
                 int start_iter = 0;
+                // printf("buf: %s", buf);
                 for (int i = 0; i < RECEIVE_BUF_SIZE; i++) {
                     if (buf[i] == ',') {
                         int end_iter         = i;
@@ -268,28 +269,34 @@ int SGX_CDECL main(int argc, char* argv[]) {
                         data_iter++;
                     }
                 }
-                // std::cout << data[0] << " process received.\n";
                 if (strncmp("login", data[0], 5) == 0) {
                     std::cout << "[Server]: ログイン処理スタート\n";
-                    ecallNewAccount(global_eid, &result, data[0], data[1]);
+                    ecallNewAccount(global_eid, &result, data[1], data[2]);
                     // 応答
                     // printf("server send: login success!\n");
-
                     write(client_sockfd, "login success!", 14);
                 } else if (strncmp("deposit", data[0], 7) == 0) {
                     std::cout << "[Server]: 預金処理スタート\n";
                     uint64_t deposits;
-                    ecallMyDeposit(global_eid, &deposits, *(uint64_t*)data[1]);
-                    // 応答
-                    // printf("server send: %ld\n", deposits);
-                    write(client_sockfd, (uint8_t*)&deposits, 8);
+                    uint64_t amount = atoi(data[1]);
+                    // printf("receive amount: %ld", amount);
+
+                    ecallMyDeposit(global_eid, &deposits, amount);
+
+                    char send_data[8];
+                    sprintf(send_data, "%ld", deposits);
+                    // printf("after ecall deposit: %ld", deposits);
+                    write(client_sockfd, send_data, sizeof(uint64_t));
                 } else if (strncmp("withdraw", data[0], 8) == 0) {
                     std::cout << "[Server]: 引き出し処理スタート\n";
                     uint64_t deposits;
-                    ecallMyWithdraw(global_eid, &deposits, *(uint64_t*)data[1]);
-                    // 応答
-                    // printf("server send: %ld\n", deposits);
-                    write(client_sockfd, (uint8_t*)&deposits, 8);
+                    uint64_t amount = atoi(data[1]);
+
+                    ecallMyWithdraw(global_eid, &deposits, amount);
+
+                    char send_data[8];
+                    sprintf(send_data, "%ld", deposits);
+                    write(client_sockfd, send_data, sizeof(uint64_t));
                 } else if (strncmp("end", buf, 3) == 0) {
                     goto server_end;
                 }

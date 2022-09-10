@@ -33,7 +33,7 @@
 
 SGX_SDK ?= /opt/intel/sgxsdk
 SGX_SSL ?= /opt/intel/sgxssl
-SGX_MODE ?= HW
+SGX_MODE ?= SW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
 
