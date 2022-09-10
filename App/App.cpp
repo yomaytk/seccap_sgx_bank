@@ -52,7 +52,7 @@
 #include "Enclave_u.h"
 #include "sgx_urts.h"
 
-const std::string PROJECT_PATH = "/home/masashi/workspace/seccap/Seccap_NetBank_SGX/";
+const std::string PROJECT_PATH = "/opt/intel/sgxsdk/SampleCode/seccap_sgx_bank";
 const int RECEIVE_BUF_SIZE     = 1024;
 
 /* Global EID shared by multiple threads */
