@@ -339,9 +339,11 @@ int SGX_CDECL main(int argc, char* argv[]) {
                 if (strncmp("login", data[0], 5) == 0) {
                     std::cout << "[Server]: ログイン処理スタート\n";
                     ecallNewAccount(global_eid, &result, data[1], data[2]);
-                    // 応答
-                    // printf("server send: login success!\n");
-                    write(client_sockfd, "login success!", 14);
+                    if (result == ProcessResult::ACCOUNT_SET_FAIL) {
+                        write(client_sockfd, "1", 1);
+                    } else {
+                        write(client_sockfd, "0", 1);
+                    }
                 } else if (strncmp("deposit", data[0], 7) == 0) {
                     std::cout << "[Server]: 預金処理スタート\n";
                     uint64_t deposits;

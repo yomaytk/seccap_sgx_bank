@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h> /* vsnprintf */
 #include <cstdio>  /* vsnprintf */
+#include <cstring>
 #include <string>
 #include <utility>
 #include "Account.h"
@@ -40,7 +41,10 @@ ProcessResult ecallNewAccount(const char* name, const char* password) {
     bool account_exist = false;
     for (auto&& account : DEAL_MANAGER->account_list) {
         if (name == account->name) {
-            result        = DEAL_MANAGER->SetCurrentAccount(account);
+            result = DEAL_MANAGER->SetCurrentAccount(account);
+            if (strcmp(password, account->password.c_str()) != 0) {
+                return ProcessResult::ACCOUNT_SET_FAIL;
+            }
             account_exist = true;
             break;
         }

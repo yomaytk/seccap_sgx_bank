@@ -25,7 +25,6 @@ int main(int argc, char** argv) {
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(port);
     addr.sin_addr.s_addr = inet_addr("127.0.1.1");
-    printf("port: %d, addr_num: %s\n", port, addr_num);
 
     // サーバ接続
     connect(sockfd, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
@@ -78,6 +77,10 @@ int main(int argc, char** argv) {
             recv(sockfd, receive_data, 1024, 0);
             if (deposit_print) {
                 printf("<<現在の合計金額>> %ld 円\n", (uint64_t)atoi(receive_data));
+            }
+            if (receive_data[0] == '1') {
+                printf("パスワードが間違っています．もう一度ログインしてください．\n");
+                login = false;
             }
         }
         std::cout << std::endl;
