@@ -16,10 +16,16 @@ int main(int argc, char** argv) {
         perror("socket");
     }
 
+    uint16_t port = 1230;
+    char addr_num[9];
+    port += atoi(argv[1]);
+    sprintf(addr_num, "127.0.%s.1", argv[1]);
+
     // 送信先アドレス・ポート番号設定
     addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(1234);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    addr.sin_port        = htons(port);
+    addr.sin_addr.s_addr = inet_addr("127.0.1.1");
+    printf("port: %d, addr_num: %s\n", port, addr_num);
 
     // サーバ接続
     connect(sockfd, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));

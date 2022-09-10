@@ -52,7 +52,8 @@
 #include "Enclave_u.h"
 #include "sgx_urts.h"
 
-const std::string PROJECT_PATH = "/opt/intel/sgxsdk/SampleCode/seccap_sgx_bank";
+// const std::string PROJECT_PATH = "/opt/intel/sgxsdk/SampleCode/seccap_sgx_bank/";
+const std::string PROJECT_PATH = "/home/masashi/workspace/seccap/Seccap_NetBank_SGX/";
 const int RECEIVE_BUF_SIZE     = 1024;
 
 /* Global EID shared by multiple threads */
@@ -283,9 +284,13 @@ int SGX_CDECL main(int argc, char* argv[]) {
         perror("socket");
     }
 
+    uint16_t port = 1230;
+    char addr_num[9];
+    port += atoi(argv[1]);
+
     // 待ち受け用IP・ポート番号設定
     addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(1234);
+    addr.sin_port        = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
 
     // バインド
