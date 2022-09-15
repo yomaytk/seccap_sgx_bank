@@ -53,8 +53,7 @@
 #include "sgx_urts.h"
 
 const std::string PROJECT_PATH = "/opt/intel/sgxsdk/SampleCode/seccap_sgx_bank/";
-// const std::string PROJECT_PATH = "/home/masashi/workspace/seccap/Seccap_NetBank_SGX/";
-const int RECEIVE_BUF_SIZE = 1024;
+const int RECEIVE_BUF_SIZE     = 1024;
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -160,7 +159,7 @@ int initialize_enclave(void) {
         return 0;
     }
 
-    /* reopen the file with write capablity */
+    /* reopen the file with write capability */
     fp = freopen(token_path, "wb", fp);
     if (fp == NULL) return 0;
     size_t write_num = fwrite(token, 1, sizeof(sgx_launch_token_t), fp);
@@ -178,6 +177,9 @@ void ocall_print_string(const char* str) {
     printf("%s", str);
 }
 
+/*
+    ocall function for get Account data bytes from "account" file.
+*/
 void ocallAccountListStore(uint8_t* account_list_data, size_t account_data_len) {
     std::ofstream ofs((PROJECT_PATH + "account").c_str(),
                       std::ios::binary | std::ios::out | std::ios::in);
@@ -197,6 +199,9 @@ void ocallAccountListStore(uint8_t* account_list_data, size_t account_data_len) 
     ofs.close();
 }
 
+/*
+    ocall function for get sealed account data bytes size from "account" file.
+*/
 void ocallGetSealedAccountListSize(uint64_t* sealed_account_list_size) {
     FILE* fp = fopen((PROJECT_PATH + "account").c_str(), "rb");
 
@@ -213,12 +218,13 @@ void ocallGetSealedAccountListSize(uint64_t* sealed_account_list_size) {
             *sealed_account_list_size = (uint64_t)pos.__pos;
         }
     }
-    // printf("get account list size end.\n");
 }
 
+/*
+    ocall function for get sealed account data bytes size from "account" file.
+*/
 void ocallGetSealedAccountList(uint8_t* sealed_account_list_data,
                                uint64_t sealed_account_list_size) {
-    // printf("get account list start.\n");
     if (sealed_account_list_size > 0) {
         std::ifstream ifs((PROJECT_PATH + "account").c_str(), std::ios::binary | std::ios::in);
         if (ifs.is_open()) {
@@ -227,7 +233,6 @@ void ocallGetSealedAccountList(uint8_t* sealed_account_list_data,
                 printf("read account file failed.\n");
             }
             ifs.close();
-            // printf("get account list end.\n");
         } else {
             printf("open account file failed.\n");
             exit(EXIT_FAILURE);
@@ -258,39 +263,36 @@ int SGX_CDECL main(int argc, char* argv[]) {
 
     char* buf;
 
-    // 受信バッファ初期化
-    // memset(buf, 0, RECEIVE_BUF_SIZE);
+    // Initialize DealManager
     ecallInitManager(global_eid, &result);
 
-    // ソケット生成
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("socket");
+    // communication preparation
+    {
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            perror("socket");
+        }
+
+        uint16_t port = 1230;
+        port += atoi(argv[1]);
+
+        addr.sin_family      = AF_INET;
+        addr.sin_port        = htons(port);
+        addr.sin_addr.s_addr = INADDR_ANY;
+
+        if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+            perror("bind");
+        }
+
+        if (listen(sockfd, SOMAXCONN) < 0) {
+            perror("listen");
+        }
+
+        if ((client_sockfd = accept(sockfd, (struct sockaddr*)&from_addr, &len)) < 0) {
+            perror("accept");
+        }
     }
 
-    uint16_t port = 1230;
-    port += atoi(argv[1]);
-
-    // 待ち受け用IP・ポート番号設定
-    addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(port);
-    addr.sin_addr.s_addr = INADDR_ANY;
-
-    // バインド
-    if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        perror("bind");
-    }
-
-    // 受信待ち
-    if (listen(sockfd, SOMAXCONN) < 0) {
-        perror("listen");
-    }
-
-    // クライアントからのコネクト要求待ち
-    if ((client_sockfd = accept(sockfd, (struct sockaddr*)&from_addr, &len)) < 0) {
-        perror("accept");
-    }
-
-    // 受信
+    // reception
     int rsize;
     for (;;) {
         for (;;) {
@@ -306,6 +308,7 @@ int SGX_CDECL main(int argc, char* argv[]) {
                 int data_size[3];
                 int data_iter  = 0;
                 int start_iter = 0;
+                // split received data
                 for (int i = 0; i < RECEIVE_BUF_SIZE; i++) {
                     if (buf[i] == ',') {
                         int end_iter         = i;
@@ -316,50 +319,56 @@ int SGX_CDECL main(int argc, char* argv[]) {
                         data_iter++;
                     }
                 }
-                if (strncmp("login", data[0], 5) == 0) {
-                    std::cout << "[Server]: ログイン処理スタート\n";
-                    ecallNewAccount(global_eid, &result, data[1], data[2]);
-                    if (result == ProcessResult::ACCOUNT_SET_FAIL) {
-                        write(client_sockfd, "1", 1);
-                    } else {
-                        write(client_sockfd, "0", 1);
+                // execute server process following received instruction
+                {
+                    // login process
+                    if (strncmp("login", data[0], 5) == 0) {
+                        std::cout << "[Server]: ログイン処理スタート\n";
+                        // execute Enclave process of login process
+                        ecallNewAccount(global_eid, &result, data[1], data[2]);
+                        if (result == ProcessResult::ACCOUNT_SET_FAIL) {
+                            write(client_sockfd, "1", 1);
+                        } else {
+                            write(client_sockfd, "0", 1);
+                        }
+                        // deposit process
+                    } else if (strncmp("deposit", data[0], 7) == 0) {
+                        std::cout << "[Server]: 預金処理スタート\n";
+                        uint64_t deposits;
+                        uint64_t amount = atoi(data[1]);
+
+                        // execute Enclave process of deposit process
+                        ecallMyDeposit(global_eid, &deposits, amount);
+
+                        char send_data[8];
+                        sprintf(send_data, "%ld", deposits);
+                        write(client_sockfd, send_data, sizeof(uint64_t));
+                    } else if (strncmp("withdraw", data[0], 8) == 0) {
+                        std::cout << "[Server]: 引き出し処理スタート\n";
+                        uint64_t deposits;
+                        uint64_t amount = atoi(data[1]);
+
+                        // execute Enclave process of withdraw process
+                        ecallMyWithdraw(global_eid, &deposits, amount);
+
+                        char send_data[8];
+                        sprintf(send_data, "%ld", deposits);
+                        write(client_sockfd, send_data, sizeof(uint64_t));
+                    } else if (strncmp("end", buf, 3) == 0) {
+                        goto server_end;
                     }
-                } else if (strncmp("deposit", data[0], 7) == 0) {
-                    std::cout << "[Server]: 預金処理スタート\n";
-                    uint64_t deposits;
-                    uint64_t amount = atoi(data[1]);
-                    // printf("receive amount: %ld", amount);
-
-                    ecallMyDeposit(global_eid, &deposits, amount);
-
-                    char send_data[8];
-                    sprintf(send_data, "%ld", deposits);
-                    // printf("after ecall deposit: %ld", deposits);
-                    write(client_sockfd, send_data, sizeof(uint64_t));
-                } else if (strncmp("withdraw", data[0], 8) == 0) {
-                    std::cout << "[Server]: 引き出し処理スタート\n";
-                    uint64_t deposits;
-                    uint64_t amount = atoi(data[1]);
-
-                    ecallMyWithdraw(global_eid, &deposits, amount);
-
-                    char send_data[8];
-                    sprintf(send_data, "%ld", deposits);
-                    write(client_sockfd, send_data, sizeof(uint64_t));
-                } else if (strncmp("end", buf, 3) == 0) {
-                    goto server_end;
+                    for (int i = 0; i < 3; i++)
+                        if (data[i] != NULL) free(data[i]);
+                    free(buf);
+                    std::cout << "[Server]: 完了\n";
                 }
-                for (int i = 0; i < 3; i++)
-                    if (data[i] != NULL) free(data[i]);
-                free(buf);
-                std::cout << "[Server]: 完了\n";
             }
         }
     }
 
 server_end:
 
-    // ソケットクローズ
+    // close socket
     close(client_sockfd);
     close(sockfd);
 

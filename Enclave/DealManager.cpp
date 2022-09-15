@@ -18,8 +18,13 @@ Manager::DealManager::~DealManager() {
 
 bool Manager::DealManager::AccountLogin() { return current_account != NULL; }
 
+/*
+    this method store account list for storage.
+    1. marshalling account list to bytes data.
+    2. sealing the bytes data.
+    3. store the bytes data using ocall function.
+*/
 ProcessResult Manager::DealManager::AccountListStoreStorage() {
-    // printf("account store start.");
     size_t all_account_data_size = 0;
     for (auto&& account : account_list) {
         all_account_data_size +=
@@ -62,20 +67,22 @@ ProcessResult Manager::DealManager::AccountListStoreStorage() {
     return ProcessResult::PROCESS_SUCCESS;
 }
 
+/*
+    the method set account list after reading account bytes data from storage.
+    1. get sealed account list bytes data from storage using ocall function.
+    2. unsealing the bytes data.
+    3. marshalling the bytes data to account list
+*/
 ProcessResult Manager::DealManager::AccountListSetting() {
     uint64_t sealed_account_list_size = 0;
     ocallGetSealedAccountListSize(&sealed_account_list_size);
-    // printf("sealed_account_list_size: %ld\n", sealed_account_list_size);
     if (sealed_account_list_size > 0) {
-        // printf("[account list get start] ");
         uint8_t* sealed_account_list_data = (uint8_t*)calloc(1, sealed_account_list_size);
         ocallGetSealedAccountList(sealed_account_list_data, sealed_account_list_size);
         auto unsealing_data_info   = this->sealing_unsealing->unsealing(sealed_account_list_data);
         uint8_t* account_list_data = unsealing_data_info.first;
         uint64_t account_list_size = (uint64_t)unsealing_data_info.second;
-        // printf("unsealing data: %s", (char*)account_list_data);
-        // printf("account_list_size: %ld", account_list_size);
-        uint8_t* data_ptr = account_list_data;
+        uint8_t* data_ptr          = account_list_data;
         for (;;) {
             std::string name, password;
             uint64_t deposits;
@@ -110,7 +117,6 @@ ProcessResult Manager::DealManager::AccountListSetting() {
             }
         }
     }
-    // printf("[account list setting end] ");
 }
 
 ProcessResult Manager::DealManager::SetCurrentAccount(AS::Account* account) {

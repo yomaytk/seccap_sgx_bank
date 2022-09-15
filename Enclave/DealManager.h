@@ -8,6 +8,9 @@
 namespace AS = AccountSpace;
 
 namespace Manager {
+    /*
+        this class process all deal.
+    */
     class DealManager {
        public:
         Encryption::SealingUnsealing* sealing_unsealing;

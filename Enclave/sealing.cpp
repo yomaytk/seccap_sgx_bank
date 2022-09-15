@@ -9,6 +9,9 @@ Encryption::SealingUnsealing::SealingUnsealing() : add_mac_txt(""){};
 
 Encryption::SealingUnsealing::~SealingUnsealing(){};
 
+/*
+    calculate encrypted_size from received target plain bytes data.
+*/
 uint16_t Encryption::SealingUnsealing::get_sealed_data_size(uint32_t txt_encrypt_size,
                                                             uint32_t limit_sealed_data_size) {
     uint32_t sealed_data_size = sgx_calc_sealed_data_size(
@@ -23,6 +26,9 @@ uint16_t Encryption::SealingUnsealing::get_sealed_data_size(uint32_t txt_encrypt
     return static_cast<uint16_t>(sealed_data_size);
 }
 
+/*
+    sealing method
+*/
 std::pair<uint8_t*, uint16_t> Encryption::SealingUnsealing::sealing(
     const uint8_t* secret_plain_data, uint16_t secret_plain_data_size,
     uint32_t limit_sealed_data_size) {
@@ -47,6 +53,9 @@ std::pair<uint8_t*, uint16_t> Encryption::SealingUnsealing::sealing(
     return std::make_pair(sealed_data_buf, sealed_data_size);
 }
 
+/*
+    unsealing method
+*/
 std::pair<uint8_t*, uint16_t> Encryption::SealingUnsealing::unsealing(
     const uint8_t* encrypted_secret_data) {
     // calculate mac txt and decrypted secret data len

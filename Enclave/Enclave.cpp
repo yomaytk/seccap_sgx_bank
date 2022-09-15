@@ -22,21 +22,20 @@ int printf(const char* fmt, ...) {
     return (int)strnlen(buf, BUFSIZ - 1) + 1;
 }
 
+/*
+    ecall function for Initialize DealManager
+*/
 ProcessResult ecallInitManager() {
     DEAL_MANAGER = new Manager::DealManager();
     DEAL_MANAGER->AccountListSetting();
-    // printf("Init Manager end.\n");
     printf("[Server]: サーバー初期設定完了\n");
-    // printf("account_list_size: %ld\n", DEAL_MANAGER->account_list.size());
-    // for (auto&& account : DEAL_MANAGER->account_list) {
-    //     printf("%s\n", account->name);
-    // }
     return ProcessResult::PROCESS_SUCCESS;
 }
 
+/*
+    ecall function for setting new account for DealManager
+*/
 ProcessResult ecallNewAccount(const char* name, const char* password) {
-    // printf("ecall New Account start.\n");
-
     ProcessResult result;
     bool account_exist = false;
     for (auto&& account : DEAL_MANAGER->account_list) {
@@ -50,11 +49,13 @@ ProcessResult ecallNewAccount(const char* name, const char* password) {
         }
     }
 
+    /*
+        if new account is generated, store it for storage.
+    */
     if (!account_exist) {
         result = DEAL_MANAGER->SetCurrentAccount(
             AccountSpace::Account::NewAccount(std::string(name), std::string(password)));
         DEAL_MANAGER->account_list.push_back(DEAL_MANAGER->current_account);
-        // printf("account store start.\n");
         DEAL_MANAGER->AccountListStoreStorage();
     }
 
@@ -62,10 +63,12 @@ ProcessResult ecallNewAccount(const char* name, const char* password) {
         return ProcessResult::ACCOUNT_SET_FAIL;
     }
 
-    // printf("ecall New Account end.\n");
     return ProcessResult::PROCESS_SUCCESS;
 }
 
+/*
+    ecall function for calculating for balance by deposit process
+*/
 uint64_t ecallMyDeposit(uint64_t amount) {
     if (!DEAL_MANAGER->AccountLogin()) {
         return ProcessResult::NEED_LOGOUT;
@@ -75,6 +78,9 @@ uint64_t ecallMyDeposit(uint64_t amount) {
     return DEAL_MANAGER->current_account->deposits;
 }
 
+/*
+    ecall function for calculating for balance by withdraw process
+*/
 uint64_t ecallMyWithdraw(uint64_t amount) {
     if (!DEAL_MANAGER->AccountLogin()) {
         return ProcessResult::NEED_LOGOUT;

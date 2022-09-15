@@ -7,6 +7,9 @@
 #include <utility>
 
 namespace Encryption {
+    /*
+        this class seal/unseal bytes data using Intel SGX packages.
+    */
     class SealingUnsealing {
        public:
         std::string add_mac_txt;
