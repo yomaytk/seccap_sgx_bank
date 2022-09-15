@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
             if (deposit_print) {
                 printf("<<現在の合計金額>> %ld 円\n", (uint64_t)atoi(receive_data));
             }
-            if (receive_data[0] == '1') {
+            if (strncmp(receive_data, "login fail.", 11) == 0) {
                 printf("パスワードが間違っています．もう一度ログインしてください．\n");
                 login = false;
             }

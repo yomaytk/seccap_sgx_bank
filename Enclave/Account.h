@@ -6,6 +6,9 @@
 #include "user_types.h"
 
 namespace AccountSpace {
+    /*
+        this class operate Account information
+    */
     class Account {
        public:
         std::string name;

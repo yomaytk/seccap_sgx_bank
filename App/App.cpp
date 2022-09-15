@@ -52,7 +52,8 @@
 #include "Enclave_u.h"
 #include "sgx_urts.h"
 
-const std::string PROJECT_PATH = "/opt/intel/sgxsdk/SampleCode/seccap_sgx_bank/";
+// const std::string PROJECT_PATH = "/opt/intel/sgxsdk/SampleCode/seccap_sgx_bank/";
+const std::string PROJECT_PATH = "/home/masashi/workspace/seccap/Seccap_NetBank_SGX/";
 const int RECEIVE_BUF_SIZE     = 1024;
 
 /* Global EID shared by multiple threads */
@@ -327,7 +328,7 @@ int SGX_CDECL main(int argc, char* argv[]) {
                         // execute Enclave process of login process
                         ecallNewAccount(global_eid, &result, data[1], data[2]);
                         if (result == ProcessResult::ACCOUNT_SET_FAIL) {
-                            write(client_sockfd, "1", 1);
+                            write(client_sockfd, "login fail.", 11);
                         } else {
                             write(client_sockfd, "0", 1);
                         }
@@ -351,9 +352,13 @@ int SGX_CDECL main(int argc, char* argv[]) {
                         // execute Enclave process of withdraw process
                         ecallMyWithdraw(global_eid, &deposits, amount);
 
-                        char send_data[8];
-                        sprintf(send_data, "%ld", deposits);
-                        write(client_sockfd, send_data, sizeof(uint64_t));
+                        if (amount > deposits) {
+                            write(client_sockfd, "too big.", 8);
+                        } else {
+                            char send_data[8];
+                            sprintf(send_data, "%ld", deposits);
+                            write(client_sockfd, send_data, sizeof(uint64_t));
+                        }
                     } else if (strncmp("end", buf, 3) == 0) {
                         goto server_end;
                     }
