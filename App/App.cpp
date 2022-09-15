@@ -52,9 +52,9 @@
 #include "Enclave_u.h"
 #include "sgx_urts.h"
 
-// const std::string PROJECT_PATH = "/opt/intel/sgxsdk/SampleCode/seccap_sgx_bank/";
-const std::string PROJECT_PATH = "/home/masashi/workspace/seccap/Seccap_NetBank_SGX/";
-const int RECEIVE_BUF_SIZE     = 1024;
+const std::string PROJECT_PATH = "/opt/intel/sgxsdk/SampleCode/seccap_sgx_bank/";
+// const std::string PROJECT_PATH = "/home/masashi/workspace/seccap/Seccap_NetBank_SGX/";
+const int RECEIVE_BUF_SIZE = 1024;
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
@@ -108,31 +108,14 @@ void print_error_message(sgx_status_t ret) {
             ret);
 }
 
-/* Initialize the enclave:
- *   Call sgx_create_enclave to initialize an enclave instance
- */
-// int initialize_enclave(void) {
-//     sgx_status_t ret = SGX_ERROR_UNEXPECTED;
-
-//     /* Call sgx_create_enclave to initialize an enclave instance */
-//     /* Debug Support: set 2nd parameter to 1 */
-//     ret = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, NULL, NULL, &global_eid, NULL);
-//     if (ret != SGX_SUCCESS) {
-//         print_error_message(ret);
-//         return -1;
-//     }
-
-//     return 0;
-// }
-
 int initialize_enclave(void) {
     char token_path[MAX_PATH] = {'\0'};
     sgx_launch_token_t token  = {0};
     sgx_status_t ret          = SGX_ERROR_UNEXPECTED;
     int updated               = 0;
 
-    /* Step 1: try to retrieve the launch token saved by last transaction
-     *         if there is no token, then create a new one.
+    /* try to retrieve the launch token saved by last transaction
+     * if there is no token, then create a new one.
      */
     /* try to get the token saved in $HOME */
     const char* home_dir = getpwuid(getuid())->pw_dir;
@@ -161,7 +144,7 @@ int initialize_enclave(void) {
             printf("Warning: Invalid launch token read from \"%s\".\n", token_path);
         }
     }
-    /* Step 2: call sgx_create_enclave to initialize an enclave instance */
+    /* call sgx_create_enclave to initialize an enclave instance */
     /* Debug Support: set 2nd parameter to 1 */
     ret = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, &token, &updated, &global_eid, NULL);
     if (ret != SGX_SUCCESS) {
@@ -170,7 +153,7 @@ int initialize_enclave(void) {
         return -1;
     }
 
-    /* Step 3: save the launch token if it is updated */
+    /* save the launch token if it is updated */
     if (updated == FALSE || fp == NULL) {
         /* if the token is not updated, or file handler is invalid, do not perform saving */
         if (fp != NULL) fclose(fp);
@@ -265,7 +248,6 @@ int SGX_CDECL main(int argc, char* argv[]) {
     }
 
     enum ProcessResult result;
-    ecallInitManager(global_eid, &result);
 
     int sockfd;
     int client_sockfd;
@@ -274,10 +256,11 @@ int SGX_CDECL main(int argc, char* argv[]) {
     socklen_t len = sizeof(struct sockaddr_in);
     struct sockaddr_in from_addr;
 
-    char buf[RECEIVE_BUF_SIZE];
+    char* buf;
 
     // 受信バッファ初期化
-    memset(buf, 0, sizeof(buf));
+    // memset(buf, 0, RECEIVE_BUF_SIZE);
+    ecallInitManager(global_eid, &result);
 
     // ソケット生成
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -285,7 +268,6 @@ int SGX_CDECL main(int argc, char* argv[]) {
     }
 
     uint16_t port = 1230;
-    char addr_num[9];
     port += atoi(argv[1]);
 
     // 待ち受け用IP・ポート番号設定
@@ -312,20 +294,18 @@ int SGX_CDECL main(int argc, char* argv[]) {
     int rsize;
     for (;;) {
         for (;;) {
-            rsize = recv(client_sockfd, buf, sizeof(buf), 0);
+            buf   = (char*)calloc(1, RECEIVE_BUF_SIZE);
+            rsize = recv(client_sockfd, buf, RECEIVE_BUF_SIZE, 0);
 
             if (rsize == 0) {
                 break;
             } else if (rsize == -1) {
                 perror("recv");
             } else {
-                // printf("receive:%s\n", buf);
-
-                char* data[3];
+                char* data[3] = {NULL};
                 int data_size[3];
                 int data_iter  = 0;
                 int start_iter = 0;
-                // printf("buf: %s", buf);
                 for (int i = 0; i < RECEIVE_BUF_SIZE; i++) {
                     if (buf[i] == ',') {
                         int end_iter         = i;
@@ -369,6 +349,9 @@ int SGX_CDECL main(int argc, char* argv[]) {
                 } else if (strncmp("end", buf, 3) == 0) {
                     goto server_end;
                 }
+                for (int i = 0; i < 3; i++)
+                    if (data[i] != NULL) free(data[i]);
+                free(buf);
                 std::cout << "[Server]: 完了\n";
             }
         }
@@ -381,7 +364,7 @@ server_end:
     close(sockfd);
 
     /* Destroy the enclave */
-    // sgx_destroy_enclave(global_eid);
+    sgx_destroy_enclave(global_eid);
 
     printf("Enclave destroyed.\n");
 
