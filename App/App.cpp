@@ -330,7 +330,11 @@ int SGX_CDECL main(int argc, char* argv[]) {
                         if (result == ProcessResult::ACCOUNT_SET_FAIL) {
                             write(client_sockfd, "login fail.", 11);
                         } else {
-                            write(client_sockfd, "0", 1);
+                            uint64_t deposits;
+                            ecallMyInquiry(global_eid, &deposits);
+                            char send_data[13];
+                            sprintf(send_data, "login%ld", deposits);
+                            write(client_sockfd, send_data, 13);
                         }
                         // deposit process
                     } else if (strncmp("deposit", data[0], 7) == 0) {

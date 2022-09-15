@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     // 送信先アドレス・ポート番号設定
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(port);
-    addr.sin_addr.s_addr = inet_addr("127.0.1.1");
+    addr.sin_addr.s_addr = inet_addr(addr_num);
 
     // サーバ接続
     connect(sockfd, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
@@ -34,6 +34,8 @@ int main(int argc, char** argv) {
     char receive_data[1024];
 
     bool login = false;
+
+    uint64_t pre_amount = 0;
 
     for (;;) {
         printf("操作番号を入力してください．\n");
@@ -70,20 +72,32 @@ int main(int argc, char** argv) {
             break;
         }
 
-        // printf("send: %s\n", send_info);
         if (send(sockfd, send_info, 1024, 0) < 0) {
             perror("send error!!");
+            std::cout << std::endl;
         } else {
             recv(sockfd, receive_data, 1024, 0);
-            if (deposit_print) {
-                printf("<<現在の合計金額>> %ld 円\n", (uint64_t)atoi(receive_data));
+            if (strncmp(receive_data, "login", 5) == 0) {
+                printf("<<現在の合計金額>> %ld 円\n", (uint64_t)atoi(receive_data + 5));
             }
-            if (strncmp(receive_data, "login fail.", 11) == 0) {
+            if (strncmp(receive_data, "too big.", 8) == 0) {
+                printf("引き出し金額が残高を超えています．もう一度試してください．\n");
+                printf("<<現在の合計金額>> %ld 円\n", pre_amount);
+                std::cout << std::endl;
+                continue;
+            }
+            if (strncmp(receive_data, "login fail.", 11) == 0 && !deposit_print) {
                 printf("パスワードが間違っています．もう一度ログインしてください．\n");
                 login = false;
+                std::cout << std::endl;
+                continue;
+            }
+            if (deposit_print) {
+                printf("<<現在の合計金額>> %ld 円\n", (uint64_t)atoi(receive_data));
+                pre_amount = (uint64_t)atoi(receive_data);
+                std::cout << std::endl;
             }
         }
-        std::cout << std::endl;
     }
 
     // ソケットクローズ

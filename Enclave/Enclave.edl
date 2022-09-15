@@ -14,6 +14,7 @@ enclave {
         public uint64_t ecallMyWithdraw(
             uint64_t amount
         );
+        public uint64_t ecallMyInquiry();
     };
 
     untrusted {

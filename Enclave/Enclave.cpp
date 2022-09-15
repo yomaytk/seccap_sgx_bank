@@ -89,3 +89,5 @@ uint64_t ecallMyWithdraw(uint64_t amount) {
     DEAL_MANAGER->AccountListStoreStorage();
     return DEAL_MANAGER->current_account->deposits;
 }
+
+uint64_t ecallMyInquiry() { return DEAL_MANAGER->current_account->deposits; }
